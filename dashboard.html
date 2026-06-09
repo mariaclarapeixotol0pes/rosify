@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>Rosify</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🌸</text></svg>"/>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet"/>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+    :root{
+      --r200:#ffb3cc;--r300:#ff80aa;--r400:#ff4d8d;--r500:#e8006f;--r600:#c4005e;--r700:#9a004a;
+      --d950:#080006;--d900:#0d0008;--d800:#180011;--d700:#200016;--d600:#2a001e;--d500:#360026;
+      --panel:#12000d;--panelh:#1e0016;
+      --sw:240px;--ph:90px;--th:64px;
+      --tp:#fff0f5;--ts:#cc7fa0;--tm:#7a3d58;
+      --bdr:rgba(255,77,141,.15);
+      --fd:'Playfair Display',serif;--fb:'DM Sans',sans-serif;
+      --r:8px;--t:.2s ease;
+    }
+    html,body{height:100%;overflow:hidden}
+    body{font-family:var(--fb);background:var(--d950);color:var(--tp);display:grid;grid-template-columns:var(--sw) 1fr;grid-template-rows:1fr var(--ph);grid-template-areas:"sidebar main" "player player"}
+
+    /* SIDEBAR */
+    .sidebar{grid-area:sidebar;background:var(--d900);display:flex;flex-direction:column;padding:20px 0 0;overflow-y:auto;border-right:1px solid var(--bdr)}
+    .sidebar::-webkit-scrollbar{width:4px}
+    .sidebar::-webkit-scrollbar-thumb{background:var(--d500);border-radius:2px}
+    .sb-logo{display:flex;align-items:center;gap:10px;padding:0 20px 28px;text-decoration:none}
+    .li{width:36px;height:36px;background:linear-gradient(135deg,var(--r400),var(--r600));border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:18px;box-shadow:0 0 16px rgba(255,77,141,.4);flex-shrink:0}
+    .lt{font-family:var(--fd);font-size:22px;font-weight:900;background:linear-gradient(135deg,#ff8fb8,var(--r400));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+    .nav-lbl{font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--tm);padding:12px 20px 6px}
+    .ni{display:flex;align-items:center;gap:14px;padding:10px 20px;color:var(--ts);font-size:14px;font-weight:500;cursor:pointer;text-decoration:none;transition:color var(--t),background var(--t);border-left:3px solid transparent}
+    .ni:hover{color:var(--tp);background:var(--panelh)}
+    .ni.on{color:var(--r300);border-left-color:var(--r400);background:rgba(255,77,141,.06)}
+    .ni .ico{font-size:18px;width:22px;text-align:center;flex-shrink:0}
+    .sdiv{height:1px;background:var(--bdr);margin:8px 20px 16px}
+    .pl-item{display:flex;align-items:center;gap:12px;padding:8px 20px;cursor:pointer;transition:background var(--t)}
+    .pl-item:hover{background:var(--panelh)}
+    .pl-th{width:40px;height:40px;border-radius:var(--r);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0}
+    .pl-info{overflow:hidden}
+    .pl-n{font-size:13px;font-weight:500;color:var(--tp);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .pl-a{font-size:12px;color:var(--tm);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+    /* MAIN */
+    .main{grid-area:main;overflow-y:auto;display:flex;flex-direction:column}
+    .main::-webkit-scrollbar{width:6px}
+    .main::-webkit-scrollbar-thumb{background:var(--d500);border-radius:3px}
+
+    /* TOPBAR */
+    .topbar{display:flex;align-items:center;justify-content:space-between;padding:0 32px;height:var(--th);background:linear-gradient(to bottom,rgba(200,0,80,.15),transparent);position:sticky;top:0;z-index:10;backdrop-filter:blur(12px);flex-shrink:0}
+    .tnav{display:flex;gap:8px}
+    .tnb{width:32px;height:32px;border-radius:50%;background:rgba(0,0,0,.5);border:none;color:var(--tp);cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;transition:background var(--t)}
+    .tnb:hover{background:rgba(255,77,141,.2)}
+    .tsearch{flex:1;max-width:360px;margin:0 24px;position:relative}
+    .sico{position:absolute;left:14px;top:50%;transform:translateY(-50%);color:var(--tm);font-size:16px;pointer-events:none}
+    .sinput{width:100%;padding:10px 16px 10px 42px;background:rgba(255,255,255,.08);border:1px solid transparent;border-radius:500px;color:var(--tp);font-family:var(--fb);font-size:14px;outline:none;transition:all var(--t)}
+    .sinput::placeholder{color:var(--tm)}
+    .sinput:focus{background:rgba(255,255,255,.1);border-color:var(--r400);box-shadow:0 0 0 2px rgba(255,77,141,.15)}
+    .umenu{display:flex;align-items:center;gap:12px}
+    .uab{display:flex;align-items:center;gap:8px;padding:4px 4px 4px 12px;background:rgba(0,0,0,.5);border:1px solid var(--bdr);border-radius:500px;cursor:pointer;color:var(--tp);font-size:13px;font-weight:600;transition:all var(--t);position:relative}
+    .uab:hover{background:rgba(255,77,141,.15);border-color:var(--r400)}
+    .uav{width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,var(--r400),var(--r600));display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:#fff}
+    .udrop{position:absolute;top:calc(100% + 8px);right:0;background:var(--d700);border:1px solid var(--bdr);border-radius:var(--r);min-width:180px;overflow:hidden;box-shadow:0 8px 32px rgba(0,0,0,.5);display:none;z-index:100}
+    .udrop.open{display:block}
+    .ddi{display:flex;align-items:center;gap:10px;padding:12px 16px;font-size:14px;color:var(--ts);cursor:pointer;transition:all var(--t);border:none;background:none;width:100%;text-align:left;font-family:var(--fb)}
+    .ddi:hover{background:var(--panelh);color:var(--tp)}
+    .ddi.danger:hover{color:#ff6b6b}
+    .ddiv{height:1px;background:var(--bdr)}
+
+    /* SCROLL AREA */
+    .sarea{padding:0 32px 40px;flex:1}
+    .hero{margin:0 -32px 32px;padding:48px 32px 32px;background:linear-gradient(180deg,rgba(232,0,111,.35) 0%,rgba(232,0,111,.1) 60%,transparent 100%);position:relative;overflow:hidden}
+    .hero::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse 60% 100% at 80% 50%,rgba(255,77,141,.15),transparent)}
+    .hgreet{font-family:var(--fd);font-size:clamp(28px,4vw,44px);font-weight:900;line-height:1.1;margin-bottom:8px;position:relative}
+    .hsub{font-size:15px;color:var(--ts);position:relative}
+    .section{margin-bottom:36px;animation:fi .4s ease both}
+    .section:nth-child(1){animation-delay:.05s}
+    .section:nth-child(2){animation-delay:.1s}
+    .section:nth-child(3){animation-delay:.15s}
+    .section:nth-child(4){animation-delay:.2s}
+    @keyframes fi{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+    .sh{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:16px}
+    .st{font-size:20px;font-weight:700;color:var(--tp)}
+    .sl{font-size:12px;font-weight:700;color:var(--tm);text-decoration:none;letter-spacing:.05em;text-transform:uppercase;transition:color var(--t)}
+    .sl:hover{color:var(--r400)}
+    .cg{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:16px}
+    .card{background:var(--panel);border-radius:var(--r);padding:16px;cursor:pointer;transition:background var(--t),transform var(--t);position:relative;overflow:hidden}
+    .card:hover{background:var(--panelh);transform:translateY(-2px)}
+    .card:hover .cpb{opacity:1;transform:translateY(0)}
+    .cth{width:100%;aspect-ratio:1;border-radius:var(--r);margin-bottom:12px;display:flex;align-items:center;justify-content:center;font-size:48px;position:relative;overflow:hidden;box-shadow:0 8px 24px rgba(0,0,0,.4)}
+    .cth.round{border-radius:50%}
+    .cpb{position:absolute;bottom:8px;right:8px;width:40px;height:40px;border-radius:50%;background:linear-gradient(135deg,var(--r400),var(--r600));border:none;color:#fff;font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;opacity:0;transform:translateY(8px);transition:all .25s ease;box-shadow:0 4px 16px rgba(255,77,141,.5)}
+    .ct{font-size:14px;font-weight:600;color:var(--tp);margin-bottom:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .cs{font-size:12px;color:var(--tm);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.4}
+    .qg{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+    .qc{display:flex;align-items:center;gap:12px;background:rgba(255,255,255,.06);border-radius:var(--r);overflow:hidden;cursor:pointer;transition:background var(--t);height:56px}
+    .qc:hover{background:rgba(255,77,141,.12)}
+    .qt{width:56px;height:56px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:24px}
+    .qn{font-size:13px;font-weight:600;color:var(--tp);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding-right:12px}
+    .g1{background:linear-gradient(135deg,#ff4d8d,#9b0059)}
+    .g2{background:linear-gradient(135deg,#ff8c42,#e8006f)}
+    .g3{background:linear-gradient(135deg,#b24bff,#e8006f)}
+    .g4{background:linear-gradient(135deg,#ff4d8d,#ff8c00)}
+    .g5{background:linear-gradient(135deg,#00c9e0,#e8006f)}
+    .g6{background:linear-gradient(135deg,#ff6eb4,#6b00ff)}
+
+    /* PLAYER */
+    .player{grid-area:player;background:var(--d800);border-top:1px solid var(--bdr);display:grid;grid-template-columns:1fr 1fr 1fr;align-items:center;padding:0 24px;gap:16px;height:var(--ph)}
+    .np{display:flex;align-items:center;gap:12px;min-width:0}
+    .npth{width:52px;height:52px;border-radius:6px;background:linear-gradient(135deg,var(--r400),var(--r700));display:flex;align-items:center;justify-content:center;font-size:24px;flex-shrink:0;box-shadow:0 4px 16px rgba(255,77,141,.3)}
+    .npi{min-width:0}
+    .npt{font-size:14px;font-weight:600;color:var(--tp);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .npa{font-size:12px;color:var(--tm);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .nph{background:none;border:none;font-size:18px;cursor:pointer;color:var(--tm);transition:color var(--t),transform var(--t);flex-shrink:0}
+    .nph:hover,.nph.on{color:var(--r400)}
+    .nph.on{transform:scale(1.2)}
+    .pc{display:flex;flex-direction:column;align-items:center;gap:8px}
+    .cr{display:flex;align-items:center;gap:16px}
+    .cb{background:none;border:none;font-size:18px;cursor:pointer;color:var(--tm);padding:4px;transition:color var(--t);display:flex;align-items:center}
+    .cb:hover{color:var(--tp)}
+    .cb.on{color:var(--r400)}
+    .cbp{width:36px;height:36px;border-radius:50%;background:var(--tp);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:15px;transition:all var(--t);color:var(--d900)}
+    .cbp:hover{background:#fff;transform:scale(1.06)}
+    .pr{display:flex;align-items:center;gap:10px;width:100%;max-width:440px}
+    .pt{font-size:11px;color:var(--tm);min-width:34px}
+    .pt.r{text-align:right}
+    .pb{flex:1;height:4px;background:var(--d500);border-radius:2px;cursor:pointer;position:relative;overflow:hidden}
+    .pf{height:100%;background:linear-gradient(90deg,var(--r400),var(--r600));border-radius:2px;width:30%;transition:width .5s linear}
+    .pb:hover .pf{background:var(--r300)}
+    .vc{display:flex;align-items:center;justify-content:flex-end;gap:10px}
+    .vs{-webkit-appearance:none;width:90px;height:4px;background:var(--d500);border-radius:2px;cursor:pointer;outline:none}
+    .vs::-webkit-slider-thumb{-webkit-appearance:none;width:12px;height:12px;border-radius:50%;background:var(--tp);cursor:pointer}
+    .vs:hover::-webkit-slider-thumb{background:var(--r300)}
+
+    /* LOADING OVERLAY */
+    .lov{position:fixed;inset:0;background:var(--d950);display:flex;align-items:center;justify-content:center;z-index:1000;transition:opacity .4s ease}
+    .lov.hide{opacity:0;pointer-events:none}
+    .lll{display:flex;flex-direction:column;align-items:center;gap:20px}
+    .lli{width:64px;height:64px;background:linear-gradient(135deg,var(--r400),var(--r600));border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:32px;box-shadow:0 0 40px rgba(255,77,141,.6);animation:pulse 1.5s ease-in-out infinite}
+    @keyframes pulse{0%,100%{box-shadow:0 0 40px rgba(255,77,141,.6)}50%{box-shadow:0 0 60px rgba(255,77,141,.9),0 0 80px rgba(255,77,141,.3)}}
+    .llt{font-family:var(--fd);font-size:32px;font-weight:900;background:linear-gradient(135deg,#ff8fb8,var(--r400));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+  </style>
+</head>
+<body>
+
+<div class="lov" id="lov">
+  <div class="lll">
+    <div class="lli">🌸</div>
+    <div class="llt">Rosify</div>
+  </div>
+</div>
+
+<!-- SIDEBAR -->
+<aside class="sidebar">
+  <a href="dashboard.html" class="sb-logo">
+    <div class="li">🌸</div>
+    <span class="lt">Rosify</span>
+  </a>
+  <nav>
+    <div class="ni on"><span class="ico">🏠</span>Início</div>
+    <div class="ni"><span class="ico">🔍</span>Buscar</div>
+    <div class="ni"><span class="ico">📚</span>Sua Biblioteca</div>
+  </nav>
+  <div style="margin-top:8px">
+    <div class="ni"><span class="ico">➕</span>Criar playlist</div>
+    <div class="ni"><span class="ico">💖</span>Músicas curtidas</div>
+  </div>
+  <div class="sdiv"></div>
+  <div class="nav-lbl">Playlists recentes</div>
+  <div class="pl-item"><div class="pl-th g1">🎵</div><div class="pl-info"><div class="pl-n">Favoritas Rosa</div><div class="pl-a">Playlist • Você</div></div></div>
+  <div class="pl-item"><div class="pl-th g2">🎶</div><div class="pl-info"><div class="pl-n">Noite de Verão</div><div class="pl-a">Playlist • Rosify</div></div></div>
+  <div class="pl-item"><div class="pl-th g3">🎸</div><div class="pl-info"><div class="pl-n">Pop Feminino</div><div class="pl-a">Playlist • Curadoria</div></div></div>
+  <div class="pl-item"><div class="pl-th g4">🎹</div><div class="pl-info"><div class="pl-n">Chill Vibes</div><div class="pl-a">Playlist • Você</div></div></div>
+  <div class="pl-item"><div class="pl-th g5">🥁</div><div class="pl-info"><div class="pl-n">Workout Mix</div><div class="pl-a">Playlist • Rosify</div></div></div>
+</aside>
+
+<!-- MAIN -->
+<main class="main">
+  <div class="topbar">
+    <div class="tnav">
+      <button class="tnb">‹</button>
+      <button class="tnb">›</button>
+    </div>
+    <div class="tsearch">
+      <span class="sico">🔍</span>
+      <input class="sinput" type="text" placeholder="O que você quer ouvir?"/>
+    </div>
+    <div class="umenu">
+      <div class="uab" id="uab">
+        <span id="uname">Usuária</span>
+        <div class="uav" id="uav">U</div>
+        <div class="udrop" id="udrop">
+          <button class="ddi">👤 Perfil</button>
+          <button class="ddi">⚙️ Configurações</button>
+          <div class="ddiv"></div>
+          <button class="ddi danger" id="logoutBtn">↩ Sair</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="sarea">
+    <div class="hero" style="animation:fi .4s ease both">
+      <div class="hgreet" id="hgreet">Boa tarde 🌸</div>
+      <div class="hsub" id="hsub">Bem-vinda de volta!</div>
+    </div>
+
+    <!-- Quick picks -->
+    <div class="section">
+      <div class="sh"><div class="st">Tocadas recentemente</div></div>
+      <div class="qg">
+        <div class="qc"><div class="qt g1">💗</div><div class="qn">Músicas Curtidas</div></div>
+        <div class="qc"><div class="qt g2">🔥</div><div class="qn">Top 50 Brasil</div></div>
+        <div class="qc"><div class="qt g3">✨</div><div class="qn">Novidades da Semana</div></div>
+        <div class="qc"><div class="qt g4">🌙</div><div class="qn">Chill da Madrugada</div></div>
+        <div class="qc"><div class="qt g5">🎤</div><div class="qn">Pop Hits 2024</div></div>
+        <div class="qc"><div class="qt g6">💃</div><div class="qn">Dance & Energy</div></div>
+      </div>
+    </div>
+
+    <!-- Artists -->
+    <div class="section">
+      <div class="sh"><div class="st">Artistas em destaque</div><a href="#" class="sl">Ver tudo</a></div>
+      <div class="cg">
+        <div class="card"><div class="cth round g1">👩‍🎤</div><div class="ct">Anitta</div><div class="cs">Artista</div><button class="cpb">▶</button></div>
+        <div class="card"><div class="cth round g3">🎤</div><div class="ct">Luísa Sonza</div><div class="cs">Artista</div><button class="cpb">▶</button></div>
+        <div class="card"><div class="cth round g5">🌟</div><div class="ct">Taylor Swift</div><div class="cs">Artista</div><button class="cpb">▶</button></div>
+        <div class="card"><div class="cth round g2">🎵</div><div class="ct">Dua Lipa</div><div class="cs">Artista</div><button class="cpb">▶</button></div>
+        <div class="card"><div class="cth round g4">💖</div><div class="ct">Ariana Grande</div><div class="cs">Artista</div><button class="cpb">▶</button></div>
+        <div class="card"><div class="cth round g6">🎶</div><div class="ct">Billie Eilish</div><div class="cs">Artista</div><button class="cpb">▶</button></div>
+      </div>
+    </div>
+
+    <!-- Recomendados -->
+    <div class="section">
+      <div class="sh"><div class="st">Recomendados para você</div><a href="#" class="sl">Ver tudo</a></div>
+      <div class="cg">
+        <div class="card"><div class="cth g1">🌸</div><div class="ct">Rose Gold Mix</div><div class="cs">Curadoria Rosify</div><button class="cpb">▶</button></div>
+        <div class="card"><div class="cth g4">☀️</div><div class="ct">Manhã Alegre</div><div class="cs">Começo de dia perfeito</div><button class="cpb">▶</button></div>
+        <div class="card"><div class="cth g2">💃</div><div class="ct">Funk Feminejo</div><div class="cs">Os maiores hits</div><button class="cpb">▶</button></div>
+        <div class="card"><div class="cth g5">🌊</div><div class="ct">Lofi Study</div><div class="cs">Foco e concentração</div><button class="cpb">▶</button></div>
+        <div class="card"><div class="cth g3">🎭</div><div class="ct">K-Pop Queens</div><div class="cs">BLACKPINK, aespa e mais</div><button class="cpb">▶</button></div>
+        <div class="card"><div class="cth g6">🌙</div><div class="ct">Noturna</div><div class="cs">Para as madrugadas</div><button class="cpb">▶</button></div>
+      </div>
+    </div>
+
+    <!-- Lançamentos -->
+    <div class="section">
+      <div class="sh"><div class="st">Lançamentos recentes</div><a href="#" class="sl">Ver tudo</a></div>
+      <div class="cg">
+        <div class="card"><div class="cth g2">🎀</div><div class="ct">Mil Vezes</div><div class="cs">Anitta • Single</div><button class="cpb">▶</button></div>
+        <div class="card"><div class="cth g1">💋</div><div class="ct">Bêbada</div><div class="cs">Luísa Sonza • Álbum</div><button class="cpb">▶</button></div>
+        <div class="card"><div class="cth g5">🦋</div><div class="ct">Cruel Summer</div><div class="cs">Taylor Swift • Álbum</div><button class="cpb">▶</button></div>
+        <div class="card"><div class="cth g3">🌺</div><div class="ct">Levitating</div><div class="cs">Dua Lipa • Single</div><button class="cpb">▶</button></div>
+      </div>
+    </div>
+  </div>
+</main>
+
+<!-- PLAYER -->
+<div class="player">
+  <div class="np">
+    <div class="npth">🌸</div>
+    <div class="npi">
+      <div class="npt">Rose Gold Mix</div>
+      <div class="npa">Curadoria Rosify</div>
+    </div>
+    <button class="nph" id="heart">♡</button>
+  </div>
+  <div class="pc">
+    <div class="cr">
+      <button class="cb" title="Aleatório">⇄</button>
+      <button class="cb" title="Anterior">⏮</button>
+      <button class="cbp" id="playBtn">▶</button>
+      <button class="cb" title="Próxima">⏭</button>
+      <button class="cb" title="Repetir">↻</button>
+    </div>
+    <div class="pr">
+      <span class="pt" id="curTime">1:23</span>
+      <div class="pb"><div class="pf" id="pf"></div></div>
+      <span class="pt r">3:45</span>
+    </div>
+  </div>
+  <div class="vc">
+    <button class="cb" title="Fila">☰</button>
+    <button class="cb" title="Volume">🔊</button>
+    <input class="vs" type="range" min="0" max="100" value="70"/>
+  </div>
+</div>
+
+<script src="auth.js"></script>
+<script>
+  const $=id=>document.getElementById(id);
+
+  (async()=>{
+    const s=await window.rosifyAuth.requireAuth();
+    if(!s)return;
+    setTimeout(()=>$('lov').classList.add('hide'),600);
+    const u=s.user;
+    const name=u.user_metadata?.full_name||u.user_metadata?.name||u.email?.split('@')[0]||'Usuária';
+    const first=name.split(' ')[0];
+    $('uname').textContent=first;
+    $('uav').textContent=first[0].toUpperCase();
+    const h=new Date().getHours();
+    const g=h<12?'Bom dia':h<18?'Boa tarde':'Boa noite';
+    $('hgreet').textContent=g+' 🌸';
+    $('hsub').textContent='Bem-vinda de volta, '+first+'!';
+  })();
+
+  $('uab').addEventListener('click',e=>{e.stopPropagation();$('udrop').classList.toggle('open')});
+  document.addEventListener('click',()=>$('udrop').classList.remove('open'));
+  $('logoutBtn').addEventListener('click',()=>window.rosifyAuth.logout());
+
+  let playing=false;
+  $('playBtn').addEventListener('click',()=>{playing=!playing;$('playBtn').textContent=playing?'⏸':'▶'});
+
+  $('heart').addEventListener('click',()=>{
+    $('heart').classList.toggle('on');
+    $('heart').textContent=$('heart').classList.contains('on')?'♥':'♡';
+  });
+
+  let prog=30;
+  const times=['0:00','0:15','0:30','0:45','1:00','1:15','1:30','1:45','2:00','2:15','2:30','2:45','3:00','3:15','3:30','3:45'];
+  setInterval(()=>{
+    if(!playing)return;
+    prog=Math.min(100,prog+0.07);
+    $('pf').style.width=prog+'%';
+    const ti=Math.floor((prog/100)*15);
+    $('curTime').textContent=times[ti]||'3:45';
+    if(prog>=100)prog=0;
+  },500);
+</script>
+</body>
+</html>

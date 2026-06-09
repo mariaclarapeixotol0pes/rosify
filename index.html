@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>Rosify — Entrar</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🌸</text></svg>"/>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet"/>
+  <!-- 1) SDK Supabase PRIMEIRO -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <!-- 2) auth.js SEGUNDO -->
+  <script src="auth.js"></script>
+  <style>
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+    :root{
+      --r200:#ffb3cc;--r300:#ff80aa;--r400:#ff4d8d;--r500:#e8006f;--r600:#c4005e;
+      --d900:#0d0008;--d800:#180011;--d500:#3d0029;
+      --tp:#fff0f5;--ts:#cc7fa0;--tm:#8a4a64;
+      --bdr:rgba(255,77,141,.25);
+      --fd:'Playfair Display',serif;--fb:'DM Sans',sans-serif;
+      --rr:8px;--tr:.2s ease;
+    }
+    html,body{height:100%}
+    body{font-family:var(--fb);background:var(--d900);color:var(--tp);min-height:100vh}
+    body::before{content:'';position:fixed;inset:0;
+      background:radial-gradient(ellipse 80% 60% at 20% 10%,rgba(232,0,111,.20) 0%,transparent 60%),
+                 radial-gradient(ellipse 60% 50% at 80% 90%,rgba(255,77,141,.14) 0%,transparent 60%);
+      pointer-events:none;z-index:0}
+    .wrap{position:relative;z-index:1;display:flex;flex-direction:column;min-height:100vh;padding-top:48px}
+    /* header */
+    header{display:flex;justify-content:center;padding:0 32px 24px}
+    .logo{display:flex;align-items:center;gap:10px;text-decoration:none}
+    .logo-icon{width:44px;height:44px;background:linear-gradient(135deg,var(--r400),var(--r600));border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:22px;box-shadow:0 0 24px rgba(255,77,141,.5)}
+    .logo-text{font-family:var(--fd);font-size:30px;font-weight:900;background:linear-gradient(135deg,#ff8fb8,var(--r400));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+    /* layout */
+    main{flex:1;display:flex;justify-content:center;padding:0 16px 40px}
+    .card{width:100%;max-width:368px;animation:up .5s ease both}
+    @keyframes up{from{opacity:0;transform:translateY(22px)}to{opacity:1;transform:translateY(0)}}
+    /* title */
+    .title{font-family:var(--fd);font-size:clamp(30px,8vw,48px);font-weight:900;text-align:center;margin-bottom:26px;line-height:1.1}
+    /* banners */
+    .ban{display:none;align-items:flex-start;gap:10px;padding:13px 16px;border-radius:var(--rr);font-size:14px;font-weight:500;margin-bottom:18px;line-height:1.4}
+    .ban.on{display:flex}
+    .ban-e{background:rgba(255,60,60,.14);border:1px solid rgba(255,60,60,.4);color:#ff8080}
+    .ban-s{background:rgba(255,77,141,.14);border:1px solid rgba(255,77,141,.4);color:var(--r200)}
+    /* steps */
+    .step{display:none;flex-direction:column}
+    .step.on{display:flex;animation:up .28s ease both}
+    /* fields */
+    .fg{margin-bottom:16px}
+    .fl{display:block;font-size:13px;font-weight:600;margin-bottom:7px}
+    .fi{width:100%;padding:15px 16px;background:rgba(255,255,255,.07);border:1px solid var(--bdr);border-radius:var(--rr);color:var(--tp);font-family:var(--fb);font-size:15px;outline:none;transition:all var(--tr)}
+    .fi::placeholder{color:var(--tm)}
+    .fi:focus{border-color:var(--r400);background:rgba(255,77,141,.09);box-shadow:0 0 0 3px rgba(255,77,141,.18)}
+    .fi.err{border-color:#f55;box-shadow:0 0 0 3px rgba(255,85,85,.15)}
+    .fe{font-size:12px;color:#ff8080;margin-top:5px;display:none}
+    .fe.on{display:block}
+    .pw-wrap{position:relative}
+    .pw-wrap .fi{padding-right:50px}
+    .eye{position:absolute;right:14px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--tm);font-size:19px;transition:color var(--tr)}
+    .eye:hover{color:var(--r400)}
+    /* buttons */
+    .btn{display:flex;align-items:center;justify-content:center;gap:10px;width:100%;padding:15px 20px;border-radius:500px;font-family:var(--fb);font-size:15px;font-weight:600;cursor:pointer;transition:all var(--tr);border:none;text-decoration:none;line-height:1}
+    .btn:disabled{opacity:.55;cursor:not-allowed}
+    .btn-p{background:linear-gradient(135deg,var(--r400),var(--r600));color:#fff;box-shadow:0 4px 22px rgba(255,77,141,.38)}
+    .btn-p:hover:not(:disabled){box-shadow:0 6px 30px rgba(255,77,141,.55);transform:translateY(-1px)}
+    .btn-s{background:rgba(255,255,255,.04);color:var(--tp);border:1.5px solid rgba(255,255,255,.18)}
+    .btn-s:hover:not(:disabled){border-color:var(--r400);color:var(--r200);background:rgba(255,77,141,.07)}
+    .btn-o{background:transparent;color:var(--tp);border:1.5px solid rgba(255,255,255,.18)}
+    .btn-o:hover{border-color:var(--r400);color:var(--r200)}
+    /* spinner */
+    .sp{display:none;width:18px;height:18px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:rot .7s linear infinite;flex-shrink:0}
+    @keyframes rot{to{transform:rotate(360deg)}}
+    .btn.ld .bt{opacity:.7}
+    .btn.ld .sp{display:block}
+    /* divider */
+    .div{display:flex;align-items:center;gap:12px;margin:20px 0;color:var(--tm);font-size:13px}
+    .div::before,.div::after{content:'';flex:1;height:1px;background:var(--bdr)}
+    /* misc */
+    .social{display:flex;flex-direction:column;gap:10px}
+    .g-ico{width:20px;height:20px;flex-shrink:0}
+    .back{display:flex;align-items:center;gap:6px;background:none;border:none;color:var(--ts);font-family:var(--fb);font-size:13px;cursor:pointer;padding:0;margin-bottom:20px;transition:color var(--tr)}
+    .back:hover{color:var(--r400)}
+    .forgot{background:none;border:none;color:var(--ts);font-family:var(--fb);font-size:13px;cursor:pointer;padding:0;margin-bottom:20px;text-decoration:underline;text-underline-offset:2px;transition:color var(--tr);text-align:left}
+    .forgot:hover{color:var(--r400)}
+    .sub{display:flex;flex-direction:column;align-items:center;gap:10px;margin-top:28px}
+    .sub p{font-size:14px;color:var(--tm)}
+    .switch{text-align:center;font-size:13px;color:var(--tm);margin-top:14px}
+    .switch button{background:none;border:none;color:var(--r400);font-family:var(--fb);font-size:13px;font-weight:600;cursor:pointer;padding:0;text-decoration:underline;text-underline-offset:2px}
+    .switch button:hover{color:var(--r200)}
+    .badge{display:inline-flex;align-items:center;gap:8px;margin-bottom:18px;font-size:12px;color:var(--tm)}
+    .badge span{background:rgba(255,77,141,.18);color:var(--r400);border-radius:500px;padding:2px 10px;font-size:11px;font-weight:700;letter-spacing:.05em;text-transform:uppercase}
+    .legal{text-align:center;font-size:11px;color:var(--tm);line-height:1.7;margin-top:28px;padding-bottom:32px}
+    .legal a{color:var(--ts);text-decoration:underline;text-underline-offset:2px}
+    .legal a:hover{color:var(--r400)}
+  </style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <a href="index.html" class="logo">
+      <div class="logo-icon">🌸</div>
+      <span class="logo-text">Rosify</span>
+    </a>
+  </header>
+  <main>
+    <div class="card">
+      <h1 class="title" id="ttl">Olá de novo</h1>
+
+      <div class="ban ban-e" id="bErr"><span>⚠</span><span id="bErrTxt"></span></div>
+      <div class="ban ban-s" id="bOk"><span>✓</span><span id="bOkTxt"></span></div>
+
+      <!-- STEP A: email inicial (login) -->
+      <div class="step on" id="sA">
+        <div class="fg">
+          <label class="fl" for="eA">E-mail</label>
+          <input class="fi" type="email" id="eA" placeholder="nome@exemplo.com" autocomplete="email" autocapitalize="off" spellcheck="false"/>
+          <span class="fe" id="eAErr"></span>
+        </div>
+        <button class="btn btn-p" id="btnA"><span class="sp"></span><span class="bt">Continuar</span></button>
+        <div class="div">ou</div>
+        <div class="social">
+          <button class="btn btn-s" id="btnGoogle">
+            <svg class="g-ico" viewBox="0 0 24 24"><path fill="#4285F4" d="M21.6 12.23c0-.7-.06-1.38-.18-2.04H12v3.85h5.38c-.23 1.25-.94 2.31-2 3.02v2.51h3.23C20.5 17.63 21.6 15.07 21.6 12.23z"/><path fill="#34A853" d="M12 22c2.7 0 4.96-.9 6.61-2.43l-3.23-2.51c-.9.6-2.04.96-3.38.96-2.6 0-4.8-1.76-5.59-4.12H3.18v2.6C4.83 19.76 8.18 22 12 22z"/><path fill="#FBBC05" d="M6.41 13.9A5.97 5.97 0 0 1 6.1 12c0-.66.11-1.3.31-1.9V7.5H3.18A9.98 9.98 0 0 0 2 12c0 1.62.39 3.14 1.18 4.5l3.23-2.6z"/><path fill="#EA4335" d="M12 5.98c1.46 0 2.78.5 3.81 1.49l2.86-2.86C16.95 2.9 14.69 2 12 2 8.18 2 4.83 4.24 3.18 7.5l3.23 2.6C7.2 7.74 9.4 5.98 12 5.98z"/></svg>
+            Continuar com o Google
+          </button>
+        </div>
+        <div class="sub">
+          <p>Não tem uma conta?</p>
+          <button class="btn btn-o" id="btnGoSignup">Inscrever-se</button>
+        </div>
+      </div>
+
+      <!-- STEP B: senha login -->
+      <div class="step" id="sB">
+        <button class="back" id="backB">← Voltar</button>
+        <div class="fg">
+          <label class="fl" for="eB">Senha</label>
+          <div class="pw-wrap">
+            <input class="fi" type="password" id="eB" placeholder="Sua senha" autocomplete="current-password"/>
+            <button class="eye" data-t="eB">👁</button>
+          </div>
+          <span class="fe" id="eBErr"></span>
+        </div>
+        <button class="forgot" id="btnForgot">Esqueceu sua senha?</button>
+        <button class="btn btn-p" id="btnLogin"><span class="sp"></span><span class="bt">Entrar</span></button>
+        <div class="switch">Não tem conta? <button id="swToSignup">Inscrever-se</button></div>
+      </div>
+
+      <!-- STEP C: email cadastro -->
+      <div class="step" id="sC">
+        <button class="back" id="backC">← Voltar</button>
+        <div class="badge"><span>Cadastro</span>Passo 1 de 2 — seu e-mail</div>
+        <div class="fg">
+          <label class="fl" for="eC">E-mail</label>
+          <input class="fi" type="email" id="eC" placeholder="nome@exemplo.com" autocomplete="email" autocapitalize="off" spellcheck="false"/>
+          <span class="fe" id="eCErr"></span>
+        </div>
+        <button class="btn btn-p" id="btnC"><span class="sp"></span><span class="bt">Continuar</span></button>
+        <div class="switch">Já tem conta? <button id="swToLoginC">Entrar</button></div>
+      </div>
+
+      <!-- STEP D: senha cadastro -->
+      <div class="step" id="sD">
+        <button class="back" id="backD">← Voltar</button>
+        <div class="badge"><span>Cadastro</span>Passo 2 de 2 — crie sua senha</div>
+        <div class="fg">
+          <label class="fl" for="eD">Criar senha</label>
+          <div class="pw-wrap">
+            <input class="fi" type="password" id="eD" placeholder="Mínimo 6 caracteres" autocomplete="new-password"/>
+            <button class="eye" data-t="eD">👁</button>
+          </div>
+          <span class="fe" id="eDErr"></span>
+        </div>
+        <button class="btn btn-p" id="btnSignup"><span class="sp"></span><span class="bt">Criar conta</span></button>
+        <div class="switch">Já tem conta? <button id="swToLoginD">Entrar</button></div>
+      </div>
+
+      <!-- STEP E: esqueceu a senha -->
+      <div class="step" id="sE">
+        <button class="back" id="backE">← Voltar</button>
+        <p style="font-size:14px;color:var(--ts);margin-bottom:20px;line-height:1.65">Digite seu e-mail e enviaremos um link para criar uma nova senha.</p>
+        <div class="fg">
+          <label class="fl" for="eE">E-mail</label>
+          <input class="fi" type="email" id="eE" placeholder="nome@exemplo.com" autocomplete="email"/>
+          <span class="fe" id="eEErr"></span>
+        </div>
+        <button class="btn btn-p" id="btnReset"><span class="sp"></span><span class="bt">Enviar link</span></button>
+      </div>
+
+      <p class="legal">Ao continuar, você concorda com nossos <a href="#">Termos de Serviço</a> e <a href="#">Política de Privacidade</a>.</p>
+    </div>
+  </main>
+</div>
+
+<script>
+// espera o auth.js ter inicializado (já carregado antes deste bloco)
+(function () {
+  const STEPS = ['sA','sB','sC','sD','sE'];
+  let loginEmail = '', signupEmail = '';
+
+  function go(id) {
+    STEPS.forEach(s => document.getElementById(s).classList.remove('on'));
+    document.getElementById(id).classList.add('on');
+  }
+  function err(msg)  { setText('bErrTxt', msg); show('bErr');  hide('bOk'); }
+  function ok(msg)   { setText('bOkTxt',  msg); show('bOk');   hide('bErr'); }
+  function clr()     { hide('bErr'); hide('bOk'); }
+  function show(id)  { document.getElementById(id).classList.add('on'); }
+  function hide(id)  { document.getElementById(id).classList.remove('on'); }
+  function setText(id, t) { document.getElementById(id).textContent = t; }
+  function val(id)   { return document.getElementById(id).value.trim(); }
+  function ld(id, v) { const b = document.getElementById(id); b.classList.toggle('ld', v); b.disabled = v; }
+  function isEmail(e){ return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e); }
+
+  function fErr(inp, errEl, msg) {
+    document.getElementById(inp).classList.add('err');
+    document.getElementById(errEl).textContent = msg;
+    document.getElementById(errEl).classList.add('on');
+  }
+  function fClr(inp, errEl) {
+    document.getElementById(inp).classList.remove('err');
+    document.getElementById(errEl).classList.remove('on');
+  }
+
+  // toggle olho
+  document.querySelectorAll('.eye').forEach(b => b.addEventListener('click', () => {
+    const i = document.getElementById(b.dataset.t);
+    i.type = i.type === 'password' ? 'text' : 'password';
+    b.textContent = i.type === 'password' ? '👁' : '🙈';
+  }));
+
+  // ── STEP A: continuar com e-mail (login) ──────────────────
+  document.getElementById('btnA').addEventListener('click', () => {
+    fClr('eA','eAErr'); clr();
+    const v = val('eA');
+    if (!isEmail(v)) { fErr('eA','eAErr','Insira um e-mail válido.'); return; }
+    loginEmail = v;
+    document.getElementById('ttl').textContent = 'Bem-vinda de volta';
+    go('sB');
+  });
+
+  // ── STEP A → signup ───────────────────────────────────────
+  document.getElementById('btnGoSignup').addEventListener('click', () => {
+    clr();
+    const typed = val('eA');
+    if (isEmail(typed)) document.getElementById('eC').value = typed;
+    document.getElementById('ttl').textContent = 'Criar conta';
+    go('sC');
+  });
+
+  // ── Google ────────────────────────────────────────────────
+  document.getElementById('btnGoogle').addEventListener('click', async () => {
+    ld('btnGoogle', true); clr();
+    try { await window.rosifyAuth.loginWithGoogle(); }
+    catch(e) { err('Erro ao entrar com Google. Tente novamente.'); ld('btnGoogle', false); }
+  });
+
+  // ── STEP B: entrar com senha ──────────────────────────────
+  document.getElementById('backB').addEventListener('click', () => {
+    clr(); document.getElementById('ttl').textContent = 'Olá de novo'; go('sA');
+  });
+  document.getElementById('swToSignup').addEventListener('click', () => {
+    clr(); document.getElementById('eC').value = loginEmail;
+    document.getElementById('ttl').textContent = 'Criar conta'; go('sC');
+  });
+  document.getElementById('btnForgot').addEventListener('click', () => {
+    clr(); document.getElementById('eE').value = loginEmail;
+    document.getElementById('ttl').textContent = 'Redefinir senha'; go('sE');
+  });
+
+  document.getElementById('btnLogin').addEventListener('click', async () => {
+    fClr('eB','eBErr'); clr();
+    const p = document.getElementById('eB').value;
+    if (!p) { fErr('eB','eBErr','Insira sua senha.'); return; }
+    ld('btnLogin', true);
+    try {
+      await window.rosifyAuth.loginWithEmail(loginEmail, p);
+      location.href = 'dashboard.html';
+    } catch(e) {
+      err(e.message?.includes('Invalid') ? 'E-mail ou senha incorretos.' : (e.message || 'Erro ao entrar.'));
+    } finally { ld('btnLogin', false); }
+  });
+
+  // ── STEP C: e-mail cadastro ───────────────────────────────
+  document.getElementById('backC').addEventListener('click', () => {
+    clr(); document.getElementById('ttl').textContent = 'Olá de novo'; go('sA');
+  });
+  document.getElementById('swToLoginC').addEventListener('click', () => {
+    clr(); document.getElementById('ttl').textContent = 'Olá de novo'; go('sA');
+  });
+  document.getElementById('btnC').addEventListener('click', () => {
+    fClr('eC','eCErr'); clr();
+    const v = val('eC');
+    if (!isEmail(v)) { fErr('eC','eCErr','Insira um e-mail válido.'); return; }
+    signupEmail = v;
+    go('sD');
+  });
+
+  // ── STEP D: senha cadastro ────────────────────────────────
+  document.getElementById('backD').addEventListener('click', () => { clr(); go('sC'); });
+  document.getElementById('swToLoginD').addEventListener('click', () => {
+    clr(); document.getElementById('ttl').textContent = 'Olá de novo'; go('sA');
+  });
+  document.getElementById('btnSignup').addEventListener('click', async () => {
+    fClr('eD','eDErr'); clr();
+    const p = document.getElementById('eD').value;
+    if (!p || p.length < 6) { fErr('eD','eDErr','A senha deve ter pelo menos 6 caracteres.'); return; }
+    ld('btnSignup', true);
+    try {
+      await window.rosifyAuth.signUpWithEmail(signupEmail, p);
+      ok('✨ Conta criada! Verifique seu e-mail para confirmar o cadastro.');
+      document.getElementById('eA').value = signupEmail;
+      document.getElementById('ttl').textContent = 'Olá de novo';
+      go('sA');
+    } catch(e) {
+      err(e.message?.includes('already') ? 'E-mail já cadastrado. Tente fazer login.' : (e.message || 'Erro ao criar conta.'));
+    } finally { ld('btnSignup', false); }
+  });
+
+  // ── STEP E: enviar link de reset ──────────────────────────
+  document.getElementById('backE').addEventListener('click', () => {
+    clr(); document.getElementById('ttl').textContent = 'Bem-vinda de volta'; go('sB');
+  });
+  document.getElementById('btnReset').addEventListener('click', async () => {
+    fClr('eE','eEErr'); clr();
+    const v = val('eE');
+    if (!isEmail(v)) { fErr('eE','eEErr','Insira um e-mail válido.'); return; }
+    ld('btnReset', true);
+    try {
+      await window.rosifyAuth.sendPasswordReset(v);
+      ok('📬 Link enviado! Verifique sua caixa de entrada e o spam.');
+      document.getElementById('ttl').textContent = 'Olá de novo';
+      go('sA');
+    } catch(e) {
+      err(e.message || 'Erro ao enviar. Tente novamente.');
+    } finally { ld('btnReset', false); }
+  });
+
+  // ── Enter ─────────────────────────────────────────────────
+  document.addEventListener('keydown', e => {
+    if (e.key !== 'Enter') return;
+    const active = document.querySelector('.step.on');
+    if (!active) return;
+    const btn = active.querySelector('.btn-p');
+    if (btn && !btn.disabled) btn.click();
+  });
+
+  // ── Redireciona se já estiver logado ──────────────────────
+  (async () => {
+    try { await window.rosifyAuth.redirectIfLoggedIn(); } catch(e) {}
+  })();
+})();
+</script>
+</body>
+</html>
